@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function RevealScreen({ player, mode = 'ONLINE', isHost, onNext, onStartGame, isLast }) {
+function RevealScreen({ player, players = [], mode = 'ONLINE', isHost, onNext, onStartGame, isLast, onSetReady }) {
     const [isFlipped, setIsFlipped] = useState(false);
 
     // Reset flip when player changes (only for LOCAL mode)
@@ -86,13 +86,40 @@ function RevealScreen({ player, mode = 'ONLINE', isHost, onNext, onStartGame, is
                     </button>
                 ) : (
                     <>
-                        {isHost ? (
-                            <button onClick={onStartGame} className="btn primary-btn">
-                                Start Timer & Begin Game
+                        {/* Player Ready Button */}
+                        {!player.isReady && (
+                            <button
+                                onClick={() => onSetReady(player.name)}
+                                className="btn primary-btn"
+                                style={{ marginBottom: '1rem', width: '100%' }}
+                            >
+                                ✅ Mark as Ready
                             </button>
-                        ) : (
-                            <p style={{ color: '#fff', opacity: 0.6, animation: 'pulse 2s infinite' }}>
-                                Waiting for host to start the game...
+                        )}
+
+                        {player.isReady && !isHost && (
+                            <p style={{ color: '#4ade80', marginBottom: '1rem' }}>You are ready! Waiting for others...</p>
+                        )}
+
+                        {/* Host Controls */}
+                        {isHost && (
+                            <div style={{ marginTop: '1rem' }}>
+                                <p style={{ color: '#94a3b8', marginBottom: '10px' }}>
+                                    {players.filter(p => p.isReady).length} / {players.length} Players Ready
+                                </p>
+                                <button
+                                    onClick={onStartGame}
+                                    disabled={players.filter(p => p.isReady).length < players.length}
+                                    className="btn primary-btn"
+                                    style={{ opacity: players.filter(p => p.isReady).length < players.length ? 0.5 : 1 }}
+                                >
+                                    Start Timer & Begin Game
+                                </button>
+                            </div>
+                        )}
+                        {!isHost && !player.isReady && (
+                            <p style={{ color: '#fff', opacity: 0.6 }}>
+                                Flip your card, then confirm you are ready.
                             </p>
                         )}
                     </>

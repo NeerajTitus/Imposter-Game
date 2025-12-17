@@ -1,11 +1,11 @@
 import React from 'react';
 
-function ResultScreen({ players, onPlayAgain }) {
-    // Find Imposter
-    const imposter = players.find(p => p.role === 'IMPOSTER');
-    // Find Secret Word (from any civilian)
-    const civilian = players.find(p => p.role === 'CIVILIAN');
-    const secretWord = civilian ? civilian.secret : "Unknown";
+function ResultScreen({ players, onPlayAgain, gameResult }) {
+    // Find Imposter (Use persistent result if available, else derive)
+    const imposterName = gameResult?.imposterName || players.find(p => p.role === 'IMPOSTER')?.name || "Unknown";
+
+    // Find Secret Word
+    const secretWord = gameResult?.secretWord || players.find(p => p.role === 'CIVILIAN')?.secret || "Unknown";
 
     return (
         <div className="glass-panel" style={{ textAlign: 'center', padding: '2rem' }}>
@@ -16,7 +16,7 @@ function ResultScreen({ players, onPlayAgain }) {
             <div style={{ margin: '2rem 0', padding: '1.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '16px' }}>
                 <p style={{ color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem' }}>The Imposter Was</p>
                 <h3 style={{ fontSize: '2rem', color: '#f43f5e', margin: '0.5rem 0' }}>
-                    {imposter ? imposter.name : "Unknown"}
+                    {imposterName}
                 </h3>
             </div>
 

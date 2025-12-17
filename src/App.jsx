@@ -86,26 +86,7 @@ function App() {
         }
     };
 
-    const handleStartOnlineGame = () => {
-        if (!roomData) return;
-        const players = roomData.players;
-        const settings = roomData.settings;
 
-        const { assignedPlayers } = generateRoles(players.map(p => p.name), settings.difficulty, settings.language);
-
-        // Merge roles into existing player objects
-        const updatedPlayers = {};
-        players.forEach((p) => {
-            const roleData = assignedPlayers.find(ap => ap.name === p.name);
-            updatedPlayers[p.name] = { ...p, ...roleData };
-        });
-
-        updateGameState(roomCode, {
-            players: updatedPlayers,
-            gameState: 'REVEAL',
-            timer: settings.duration * 60
-        });
-    };
 
     // ================== SHARED LOGIC ==================
     const generateRoles = (names, difficulty, language = 'english') => {
@@ -122,10 +103,55 @@ function App() {
                 secret: isImposter ? randomPair.clue : randomPair.word,
                 instruction: isImposter
                     ? 'You are the Imposter! The clue is related to the secret word.'
-                    : 'The Secret Word is:'
+                    : 'The Secret Word is:',
+                isReady: false // Initialize readiness
             };
         });
         return { assignedPlayers, randomPair };
+    };
+
+    const handleSetReady = (name) => {
+        if (!roomData || !roomData.players) return;
+
+        const updatedPlayers = {};
+        roomData.players.forEach(p => {
+            updatedPlayers[p.name] = {
+                ...p,
+                isReady: (p.name === name || p.isReady) // Keep existing ready state or set true
+            };
+        });
+
+        updateGameState(roomCode, { players: updatedPlayers });
+    };
+
+    const handleStartOnlineGame = () => {
+        if (!roomData) return;
+        const players = roomData.players;
+        const settings = roomData.settings;
+
+        const { assignedPlayers, randomPair } = generateRoles(players.map(p => p.name), settings.difficulty, settings.language);
+
+        let imposterName = "";
+        const updatedPlayers = {};
+
+        assignedPlayers.forEach(ap => {
+            if (ap.role === 'IMPOSTER') imposterName = ap.name;
+        });
+
+        players.forEach((p) => {
+            const roleData = assignedPlayers.find(ap => ap.name === p.name);
+            updatedPlayers[p.name] = { ...p, ...roleData };
+        });
+
+        updateGameState(roomCode, {
+            players: updatedPlayers,
+            gameState: 'REVEAL',
+            timer: settings.duration * 60,
+            gameResult: {
+                imposterName,
+                secretWord: randomPair.word
+            }
+        });
     };
 
 
@@ -183,8 +209,10 @@ function App() {
                 {phase === 'REVEAL' && (
                     <RevealScreen
                         player={me}
+                        players={roomData.players}
                         mode="ONLINE"
                         isHost={isHost}
+                        onSetReady={handleSetReady}
                         onStartGame={() => updateGameState(roomCode, { gameState: 'PLAYING' })}
                     />
                 )}
@@ -199,6 +227,7 @@ function App() {
                 {phase === 'GAME_OVER' && (
                     <ResultScreen
                         players={roomData.players}
+                        gameResult={roomData.gameResult}
                         onPlayAgain={() => {
                             // Reset for online
                             const updatedPlayers = {};

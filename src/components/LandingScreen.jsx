@@ -130,14 +130,14 @@ function LandingScreen({ onCreate, onJoin, initialCode }) {
                 </div>
 
                 <div style={{ margin: '1rem 0' }}>
-                    <label style={{ display: 'block', marginBottom: '15px' }}>Language</label>
+                    <label style={{ display: 'block', margin: '15px 0' }}>Language</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '5px', justifyContent: 'center' }}>
                         {['English', 'Malayalam'].map(l => (
                             <button
                                 key={l}
-                                onClick={() => setSettings({ ...settings, language: l })}
-                                className={`btn ${settings.language === l ? 'primary-btn' : 'secondary-btn'}`}
-                                style={{ textTransform: 'capitalize', opacity: settings.language === l ? 1 : 0.8 }}
+                                onClick={() => setSettings({ ...settings, language: l.toLowerCase() })}
+                                className={`btn ${settings.language === l.toLowerCase() ? 'primary-btn' : 'secondary-btn'}`}
+                                style={{ textTransform: 'capitalize', opacity: settings.language === l.toLowerCase() ? 1 : 0.8 }}
                             >
                                 {l}
                             </button>

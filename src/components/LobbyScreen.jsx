@@ -30,7 +30,7 @@ function LobbyScreen({ roomCode, players, isHost, onStart }) {
                     alert("Invite link copied to clipboard: " + url);
                 }}
                 className="btn secondary-btn"
-                style={{ fontSize: '0.9rem', marginBottom: '1rem', padding: '5px 10px', opacity: 0.8 }}
+                style={{ fontSize: '1rem', marginBottom: '1rem', padding: '5px 10px' }}
             >
                 🔗 Copy Invite Link
             </button>
