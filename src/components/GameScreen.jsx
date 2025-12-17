@@ -1,25 +1,33 @@
 import React, { useState, useEffect } from 'react';
 
-function GameScreen({ onEnd, duration = 10 }) {
-    const [seconds, setSeconds] = useState(duration * 60);
+function GameScreen({ onEnd, isHost, timer, mode = 'ONLINE', duration = 10 }) {
+
+    // Local State for Offline Mode
+    const [localSeconds, setLocalSeconds] = useState(duration * 60);
 
     useEffect(() => {
-        const timer = setInterval(() => {
-            setSeconds(s => {
-                if (s <= 0) {
-                    clearInterval(timer);
-                    return 0;
-                }
-                return s - 1;
-            });
-        }, 1000);
+        if (mode === 'LOCAL') {
+            const interval = setInterval(() => {
+                setLocalSeconds(s => {
+                    if (s <= 0) {
+                        clearInterval(interval);
+                        // Optional: Auto-end? Or just wait for user
+                        return 0;
+                    }
+                    return s - 1;
+                });
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [mode, duration]);
 
-        return () => clearInterval(timer);
-    }, []);
+    // Timer is now managed by App (Host updates DB, others read prop) for ONLINE
+    // OR local state for LOCAL
+    const seconds = mode === 'LOCAL' ? localSeconds : (timer || 0);
 
     const formatTime = (totalSeconds) => {
-        const m = Math.floor(totalSeconds / 60);
-        const s = totalSeconds % 60;
+        const m = Math.floor(Math.max(0, totalSeconds) / 60);
+        const s = Math.max(0, totalSeconds) % 60;
         return `${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
@@ -36,16 +44,19 @@ function GameScreen({ onEnd, duration = 10 }) {
             }}>
                 {formatTime(seconds)}
             </div>
+
             <p style={{
-                fontSize: '1.2rem',
                 color: '#94a3b8',
+                marginBottom: '2rem',
                 textTransform: 'uppercase',
                 letterSpacing: '2px'
             }}>Find the Imposter!</p>
 
-            <button onClick={onEnd} className="btn danger-btn">
-                End Game
-            </button>
+            {(isHost || mode === 'LOCAL') && (
+                <button onClick={onEnd} className="btn danger-btn">
+                    End Game
+                </button>
+            )}
         </div>
     );
 }

@@ -1,38 +1,110 @@
-import React, { useState } from 'react';
-import SetupScreen from './components/SetupScreen';
+import React, { useState, useEffect } from 'react';
+import MainMenu from './components/MainMenu';
+import SetupScreen from './components/SetupScreen'; // Restored for Local
+import LandingScreen from './components/LandingScreen';
+import LobbyScreen from './components/LobbyScreen';
 import RevealScreen from './components/RevealScreen';
 import GameScreen from './components/GameScreen';
 import ResultScreen from './components/ResultScreen';
+import { createRoom, joinRoom, subscribeToRoom, updateGameState } from './services/firebase';
 import { wordList } from './data/wordList';
 
 function App() {
-    const [players, setPlayers] = useState([]);
-    const [gamePhase, setGamePhase] = useState('SETUP'); // SETUP, REVEAL, PLAYING, GAME_OVER
-    const [difficulty, setDifficulty] = useState('easy');
-    const [currentTurn, setCurrentTurn] = useState(0);
-    const [gameDuration, setGameDuration] = useState(10);
+    const [appMode, setAppMode] = useState('MENU'); // MENU, LOCAL, ONLINE
 
-    const startGame = (playerNames, selectedDifficulty, selectedLanguage = 'english', timerValue = 10) => {
-        setDifficulty(selectedDifficulty);
-        setGameDuration(timerValue);
+    // --- ONLINE STATE ---
+    const [roomCode, setRoomCode] = useState(null);
+    const [playerName, setPlayerName] = useState(null);
+    const [roomData, setRoomData] = useState(null);
 
-        // Select Word Pair
-        // Ensure language exists, fallback to english if not
-        const languageWords = wordList[selectedLanguage] || wordList['english'];
-        const availableWords = languageWords[selectedDifficulty];
+    // --- LOCAL STATE ---
+    const [localPlayers, setLocalPlayers] = useState([]);
+    const [localPhase, setLocalPhase] = useState('SETUP');
+    const [localTurn, setLocalTurn] = useState(0);
+    const [localDuration, setLocalDuration] = useState(10);
 
-        // Safety check if words are missing
-        if (!availableWords || availableWords.length === 0) {
-            console.error(`No words found for ${selectedLanguage} - ${selectedDifficulty}`);
-            return;
+
+    // ================== ONLINE LOGIC ==================
+    useEffect(() => {
+        if (!roomCode || appMode !== 'ONLINE') return;
+
+        const unsubscribe = subscribeToRoom(roomCode, (data) => {
+            if (data) {
+                setRoomData(data);
+            } else {
+                if (appMode === 'ONLINE') { // Only alert if still online
+                    alert("Room closed!");
+                    setRoomCode(null);
+                    setRoomData(null);
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, [roomCode, appMode]);
+
+    // Host Timer Helper (Online)
+    useEffect(() => {
+        if (appMode !== 'ONLINE' || !roomData || !roomData.players || !playerName) return;
+
+        const me = roomData.players.find(p => p.name === playerName);
+        if (me && me.isHost && roomData.gameState === 'PLAYING' && roomData.timer > 0) {
+            const interval = setInterval(() => {
+                updateGameState(roomCode, { timer: roomData.timer - 1 });
+            }, 1000);
+            return () => clearInterval(interval);
         }
+    }, [roomData, playerName, roomCode, appMode]);
 
+    const handleCreateOnline = async (name, settings) => {
+        try {
+            const code = await createRoom(name, settings);
+            setPlayerName(name);
+            setRoomCode(code);
+        } catch (e) {
+            alert(e.message);
+        }
+    };
+
+    const handleJoinOnline = async (code, name) => {
+        try {
+            await joinRoom(code, name);
+            setPlayerName(name);
+            setRoomCode(code);
+        } catch (e) {
+            alert(e.message);
+        }
+    };
+
+    const handleStartOnlineGame = () => {
+        if (!roomData) return;
+        const players = roomData.players;
+        const settings = roomData.settings;
+
+        const { assignedPlayers } = generateRoles(players.map(p => p.name), settings.difficulty, settings.language);
+
+        // Merge roles into existing player objects
+        const updatedPlayers = {};
+        players.forEach((p) => {
+            const roleData = assignedPlayers.find(ap => ap.name === p.name);
+            updatedPlayers[p.name] = { ...p, ...roleData };
+        });
+
+        updateGameState(roomCode, {
+            players: updatedPlayers,
+            gameState: 'REVEAL',
+            timer: settings.duration * 60
+        });
+    };
+
+    // ================== SHARED LOGIC ==================
+    const generateRoles = (names, difficulty, language = 'english') => {
+        const languageWords = wordList[language] || wordList['english'];
+        const availableWords = languageWords[difficulty];
         const randomPair = availableWords[Math.floor(Math.random() * availableWords.length)];
+        const imposterIndex = Math.floor(Math.random() * names.length);
 
-        // Assign Roles
-        const imposterIndex = Math.floor(Math.random() * playerNames.length);
-
-        const assignedPlayers = playerNames.map((name, i) => {
+        const assignedPlayers = names.map((name, i) => {
             const isImposter = i === imposterIndex;
             return {
                 name,
@@ -43,27 +115,119 @@ function App() {
                     : 'The Secret Word is:'
             };
         });
-
-        setPlayers(assignedPlayers);
-        setCurrentTurn(0);
-        setGamePhase('REVEAL');
+        return { assignedPlayers, randomPair };
     };
 
-    const nextTurn = () => {
-        if (currentTurn < players.length - 1) {
-            setCurrentTurn(currentTurn + 1);
+
+    // ================== LOCAL LOGIC ==================
+    const startLocalGame = (names, difficulty, language, duration) => {
+        const { assignedPlayers } = generateRoles(names, difficulty, language);
+        setLocalPlayers(assignedPlayers);
+        setLocalDuration(duration);
+        setLocalTurn(0);
+        setLocalPhase('REVEAL');
+    };
+
+    const handleLocalNextTurn = () => {
+        if (localTurn < localPlayers.length - 1) {
+            setLocalTurn(localTurn + 1);
         } else {
-            setGamePhase('PLAYING');
+            setLocalPhase('PLAYING');
         }
     };
 
-    const handleGameOver = () => {
-        setGamePhase('GAME_OVER');
+    // ================== NAVIGATION ==================
+    const goHome = () => {
+        setAppMode('MENU');
+        setRoomCode(null);
+        setRoomData(null);
+        setLocalPhase('SETUP');
     };
 
-    const resetGame = () => {
-        setGamePhase('SETUP');
-        setCurrentTurn(0);
+    // Derived Render State
+    const renderOnline = () => {
+        if (!roomCode || !roomData) {
+            return (
+                <LandingScreen onCreate={handleCreateOnline} onJoin={handleJoinOnline} />
+            );
+        }
+
+        const me = roomData.players.find(p => p.name === playerName) || {};
+        const isHost = me.isHost;
+        const phase = roomData.gameState;
+
+        return (
+            <>
+                {phase === 'LOBBY' && (
+                    <LobbyScreen
+                        roomCode={roomCode}
+                        players={roomData.players}
+                        isHost={isHost}
+                        onStart={handleStartOnlineGame}
+                    />
+                )}
+                {phase === 'REVEAL' && (
+                    <RevealScreen
+                        player={me}
+                        mode="ONLINE"
+                        isHost={isHost}
+                        onStartGame={() => updateGameState(roomCode, { gameState: 'PLAYING' })}
+                    />
+                )}
+                {phase === 'PLAYING' && (
+                    <GameScreen
+                        mode="ONLINE"
+                        timer={roomData.timer}
+                        isHost={isHost}
+                        onEnd={() => updateGameState(roomCode, { gameState: 'GAME_OVER' })}
+                    />
+                )}
+                {phase === 'GAME_OVER' && (
+                    <ResultScreen
+                        players={roomData.players}
+                        onPlayAgain={() => {
+                            // Reset for online
+                            const updatedPlayers = {};
+                            roomData.players.forEach(p => {
+                                updatedPlayers[p.name] = { ...p, role: null, secret: null };
+                            });
+                            updateGameState(roomCode, { gameState: 'LOBBY', players: updatedPlayers });
+                        }}
+                    />
+                )}
+            </>
+        );
+    };
+
+    const renderLocal = () => {
+        return (
+            <>
+                {localPhase === 'SETUP' && (
+                    <SetupScreen onStart={startLocalGame} />
+                )}
+                {localPhase === 'REVEAL' && (
+                    <RevealScreen
+                        player={localPlayers[localTurn]}
+                        mode="LOCAL"
+                        onNext={handleLocalNextTurn}
+                        isLast={localTurn === localPlayers.length - 1}
+                    />
+                )}
+                {localPhase === 'PLAYING' && (
+                    <GameScreen
+                        mode="LOCAL"
+                        duration={localDuration}
+                        onEnd={() => setLocalPhase('GAME_OVER')}
+                    />
+                )}
+                {localPhase === 'GAME_OVER' && (
+                    <ResultScreen
+                        players={localPlayers}
+                        onPlayAgain={() => setLocalPhase('SETUP')}
+                    />
+                )}
+            </>
+        );
     };
 
     return (
@@ -75,30 +239,22 @@ function App() {
             </div>
 
             <header className="game-header">
-                <h1>IMPOSTER</h1>
+                <h1 onClick={goHome} style={{ cursor: 'pointer' }}>IMPOSTER</h1>
                 <p className="subtitle">Trust No One.</p>
+                {appMode !== 'MENU' && (
+                    <button
+                        onClick={goHome}
+                        style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.5, cursor: 'pointer', marginTop: '5px' }}
+                    >
+                        Exit to Menu
+                    </button>
+                )}
             </header>
 
             <main>
-                {gamePhase === 'SETUP' && (
-                    <SetupScreen onStart={startGame} />
-                )}
-
-                {gamePhase === 'REVEAL' && (
-                    <RevealScreen
-                        player={players[currentTurn]}
-                        onNext={nextTurn}
-                        isLast={currentTurn === players.length - 1}
-                    />
-                )}
-
-                {gamePhase === 'PLAYING' && (
-                    <GameScreen onEnd={handleGameOver} duration={gameDuration} />
-                )}
-
-                {gamePhase === 'GAME_OVER' && (
-                    <ResultScreen players={players} onPlayAgain={resetGame} />
-                )}
+                {appMode === 'MENU' && <MainMenu onSelectMode={setAppMode} />}
+                {appMode === 'ONLINE' && renderOnline()}
+                {appMode === 'LOCAL' && renderLocal()}
             </main>
         </div>
     );
