@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import MainMenu from './components/MainMenu';
 import SetupScreen from './components/SetupScreen'; // Restored for Local
 import LandingScreen from './components/LandingScreen';
@@ -34,6 +34,14 @@ function App() {
     const [localDuration, setLocalDuration] = useState(10);
 
 
+    // --- DERIVED STATE ---
+    const currentUser = useMemo(() => {
+        if (!roomData?.players || !playerName) return null;
+        return roomData.players.find(p => p.name === playerName);
+    }, [roomData, playerName]);
+
+    const isHost = currentUser?.isHost || false;
+
     // ================== ONLINE LOGIC ==================
     useEffect(() => {
         if (!roomCode || appMode !== 'ONLINE') return;
@@ -55,16 +63,13 @@ function App() {
 
     // Host Timer Helper (Online)
     useEffect(() => {
-        if (appMode !== 'ONLINE' || !roomData || !roomData.players || !playerName) return;
+        if (appMode !== 'ONLINE' || !isHost || !roomData || roomData.gameState !== 'PLAYING' || roomData.timer <= 0) return;
 
-        const me = roomData.players.find(p => p.name === playerName);
-        if (me && me.isHost && roomData.gameState === 'PLAYING' && roomData.timer > 0) {
-            const interval = setInterval(() => {
-                updateGameState(roomCode, { timer: roomData.timer - 1 });
-            }, 1000);
-            return () => clearInterval(interval);
-        }
-    }, [roomData, playerName, roomCode, appMode]);
+        const interval = setInterval(() => {
+            updateGameState(roomCode, { timer: roomData.timer - 1 });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [roomData?.timer, roomData?.gameState, isHost, roomCode, appMode]);
 
     const handleCreateOnline = async (name, settings) => {
         try {
@@ -85,8 +90,6 @@ function App() {
             alert(e.message);
         }
     };
-
-
 
     // ================== SHARED LOGIC ==================
     const generateRoles = (names, difficulty, language = 'english') => {
@@ -131,15 +134,15 @@ function App() {
 
         const { assignedPlayers, randomPair } = generateRoles(players.map(p => p.name), settings.difficulty, settings.language);
 
-        let imposterName = "";
+        // Optimize merging with Map
+        const roleMap = new Map(assignedPlayers.map(ap => [ap.name, ap]));
         const updatedPlayers = {};
 
-        assignedPlayers.forEach(ap => {
-            if (ap.role === 'IMPOSTER') imposterName = ap.name;
-        });
+        let imposterName = "";
 
         players.forEach((p) => {
-            const roleData = assignedPlayers.find(ap => ap.name === p.name);
+            const roleData = roleMap.get(p.name);
+            if (roleData.role === 'IMPOSTER') imposterName = roleData.name;
             updatedPlayers[p.name] = { ...p, ...roleData };
         });
 
@@ -153,7 +156,6 @@ function App() {
             }
         });
     };
-
 
     // ================== LOCAL LOGIC ==================
     const startLocalGame = (names, difficulty, language, duration) => {
@@ -192,8 +194,6 @@ function App() {
             );
         }
 
-        const me = roomData.players.find(p => p.name === playerName) || {};
-        const isHost = me.isHost;
         const phase = roomData.gameState;
 
         return (
@@ -208,7 +208,7 @@ function App() {
                 )}
                 {phase === 'REVEAL' && (
                     <RevealScreen
-                        player={me}
+                        player={currentUser || {}}
                         players={roomData.players}
                         mode="ONLINE"
                         isHost={isHost}
@@ -232,7 +232,7 @@ function App() {
                             // Reset for online
                             const updatedPlayers = {};
                             roomData.players.forEach(p => {
-                                updatedPlayers[p.name] = { ...p, role: null, secret: null };
+                                updatedPlayers[p.name] = { ...p, role: null, secret: null, isReady: false };
                             });
                             updateGameState(roomCode, { gameState: 'LOBBY', players: updatedPlayers });
                         }}
