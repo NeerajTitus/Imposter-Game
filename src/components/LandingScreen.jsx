@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
 
-function LandingScreen({ onCreate, onJoin }) {
-    const [joinCode, setJoinCode] = useState('');
+function LandingScreen({ onCreate, onJoin, initialCode }) {
+    const [joinCode, setJoinCode] = useState(initialCode || '');
     const [name, setName] = useState('');
-    const [mode, setMode] = useState('menu'); // menu, join, create
+    const [mode, setMode] = useState(initialCode ? 'join' : 'menu'); // Auto-switch if code present
     const [settings, setSettings] = useState({ difficulty: 'easy', language: 'english', duration: 10 });
+
+    React.useEffect(() => {
+        if (initialCode) {
+            setJoinCode(initialCode);
+            setMode('join');
+        }
+    }, [initialCode]);
 
     const handleCreate = () => {
         if (!name.trim()) return alert("Enter your name!");
@@ -93,7 +100,7 @@ function LandingScreen({ onCreate, onJoin }) {
                 <button onClick={handleJoin} className="btn primary-btn" style={{ width: '100%' }}>
                     Enter Room
                 </button>
-                <button onClick={() => setMode('menu')} className="btn text-btn" style={{ marginTop: '1rem' }}>
+                <button onClick={() => setMode('menu')} className="btn text-btn primary-btn" style={{ marginTop: '1rem' }}>
                     Back
                 </button>
             </div>

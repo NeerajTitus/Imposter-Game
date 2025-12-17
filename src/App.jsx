@@ -14,8 +14,18 @@ function App() {
 
     // --- ONLINE STATE ---
     const [roomCode, setRoomCode] = useState(null);
+    const [initialRoomCode, setInitialRoomCode] = useState(null); // For deep linking
     const [playerName, setPlayerName] = useState(null);
     const [roomData, setRoomData] = useState(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('room');
+        if (code) {
+            setInitialRoomCode(code.toUpperCase());
+            setAppMode('ONLINE'); // Auto-switch to Online mode for convenience
+        }
+    }, []);
 
     // --- LOCAL STATE ---
     const [localPlayers, setLocalPlayers] = useState([]);
@@ -148,7 +158,11 @@ function App() {
     const renderOnline = () => {
         if (!roomCode || !roomData) {
             return (
-                <LandingScreen onCreate={handleCreateOnline} onJoin={handleJoinOnline} />
+                <LandingScreen
+                    onCreate={handleCreateOnline}
+                    onJoin={handleJoinOnline}
+                    initialCode={initialRoomCode}
+                />
             );
         }
 

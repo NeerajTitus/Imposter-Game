@@ -14,7 +14,7 @@ function LobbyScreen({ roomCode, players, isHost, onStart }) {
         <div className="glass-panel" style={{ textAlign: 'center', width: '100%' }}>
             <p style={{ color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>Room Code</p>
             <h1 style={{
-                fontSize: '4rem',
+                fontSize: '3.5rem',
                 margin: '0.5rem 0',
                 color: '#fff',
                 letterSpacing: '10px',
@@ -22,6 +22,18 @@ function LobbyScreen({ roomCode, players, isHost, onStart }) {
             }}>
                 {roomCode}
             </h1>
+
+            <button
+                onClick={() => {
+                    const url = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+                    navigator.clipboard.writeText(url);
+                    alert("Invite link copied to clipboard: " + url);
+                }}
+                className="btn secondary-btn"
+                style={{ fontSize: '0.9rem', marginBottom: '1rem', padding: '5px 10px', opacity: 0.8 }}
+            >
+                🔗 Copy Invite Link
+            </button>
 
             <div style={{ margin: '2rem 0', textAlign: 'left' }}>
                 <h3 style={{ marginBottom: '1rem' }}>Players ({players.length})</h3>
