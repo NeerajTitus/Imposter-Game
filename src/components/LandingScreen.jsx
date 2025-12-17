@@ -40,7 +40,7 @@ function LandingScreen({ onCreate, onJoin }) {
                     <button onClick={() => setMode('create')} className="btn primary-btn">
                         Create Room
                     </button>
-                    <button onClick={() => setMode('join')} className="btn secondary-btn">
+                    <button onClick={() => setMode('join')} className="btn secondary-btn" style={{ marginTop: `0` }}>
                         Join Room
                     </button>
                 </div>
@@ -114,7 +114,7 @@ function LandingScreen({ onCreate, onJoin }) {
                                 key={d}
                                 onClick={() => setSettings({ ...settings, difficulty: d })}
                                 className={`btn ${settings.difficulty === d ? 'primary-btn' : 'secondary-btn'}`}
-                                style={{ padding: '8px', fontSize: '0.8rem', textTransform: 'capitalize' }}
+                                style={{ padding: '8px', textTransform: 'capitalize', opacity: settings.difficulty === d ? 1 : 0.8 }}
                             >
                                 {d}
                             </button>
@@ -125,12 +125,12 @@ function LandingScreen({ onCreate, onJoin }) {
                 <div style={{ margin: '1rem 0' }}>
                     <label style={{ display: 'block', marginBottom: '15px' }}>Language</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '5px', justifyContent: 'center' }}>
-                        {['english', 'malayalam'].map(l => (
+                        {['English', 'Malayalam'].map(l => (
                             <button
                                 key={l}
                                 onClick={() => setSettings({ ...settings, language: l })}
                                 className={`btn ${settings.language === l ? 'primary-btn' : 'secondary-btn'}`}
-                                style={{ padding: '8px', fontSize: '0.8rem', textTransform: 'capitalize' }}
+                                style={{ textTransform: 'capitalize', opacity: settings.language === l ? 1 : 0.8 }}
                             >
                                 {l}
                             </button>
@@ -138,7 +138,7 @@ function LandingScreen({ onCreate, onJoin }) {
                     </div>
                 </div>
 
-                <div style={{ margin: '1rem 0' }}>
+                <div style={{ margin: '2rem 0' }}>
                     <label>Timer (Mins): {settings.duration}</label>
                     <input
                         type="range"
@@ -152,7 +152,7 @@ function LandingScreen({ onCreate, onJoin }) {
                 <button onClick={handleCreate} className="btn primary-btn" style={{ width: '100%' }}>
                     Start Lobby
                 </button>
-                <button onClick={() => setMode('menu')} className="btn text-btn" style={{ marginTop: '1rem' }}>
+                <button onClick={() => setMode('menu')} className="btn text-btn primary-btn" style={{ marginTop: '1rem' }}>
                     Back
                 </button>
             </div>

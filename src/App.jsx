@@ -244,7 +244,7 @@ function App() {
                 {appMode !== 'MENU' && (
                     <button
                         onClick={goHome}
-                        style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.5, cursor: 'pointer', marginTop: '5px' }}
+                        style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.5, cursor: 'pointer', marginTop: '20px' }}
                     >
                         Exit to Menu
                     </button>
