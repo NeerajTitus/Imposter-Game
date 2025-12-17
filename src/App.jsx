@@ -8,8 +8,10 @@ import GameScreen from './components/GameScreen';
 import ResultScreen from './components/ResultScreen';
 import { createRoom, joinRoom, subscribeToRoom, updateGameState } from './services/firebase';
 import { wordList } from './data/wordList';
+import Loader from './components/Loader';
 
 function App() {
+    const [isLoading, setIsLoading] = useState(false);
     const [appMode, setAppMode] = useState('MENU'); // MENU, LOCAL, ONLINE
 
     // --- ONLINE STATE ---
@@ -71,23 +73,31 @@ function App() {
         return () => clearInterval(interval);
     }, [roomData?.timer, roomData?.gameState, isHost, roomCode, appMode]);
 
+
+
     const handleCreateOnline = async (name, settings) => {
+        setIsLoading(true);
         try {
             const code = await createRoom(name, settings);
             setPlayerName(name);
             setRoomCode(code);
         } catch (e) {
             alert(e.message);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleJoinOnline = async (code, name) => {
+        setIsLoading(true);
         try {
             await joinRoom(code, name);
             setPlayerName(name);
             setRoomCode(code);
         } catch (e) {
             alert(e.message);
+        } finally {
+            setIsLoading(false);
         }
     };
 
