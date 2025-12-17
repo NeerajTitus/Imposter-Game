@@ -40,7 +40,7 @@ Built with **React**, **Vite**, and **Firebase**, featuring a stunning glassmorp
 *   **Build Tool**: Vite
 *   **Backend / Realtime**: Firebase Realtime Database
 *   **Styling**: Plain CSS3 (Glassmorphism, CSS Variables, Flexbox/Grid)
-*   **Deployment**: GitHub Pages (via GitHub Actions)
+*   **Deployment**: Vercel
 
 ## 📦 Installation (For Developers)
 
@@ -67,3 +67,4 @@ Built with **React**, **Vite**, and **Firebase**, featuring a stunning glassmorp
 
 ---
 *Trust No One. Suspect Everyone.* 🥂
+
